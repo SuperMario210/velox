@@ -84,6 +84,10 @@ class TopNRowNumber : public Operator {
     std::priority_queue<char*, std::vector<char*, StlAllocator<char*>>, Compare>
         rows;
 
+    // This is the highest rank seen so far in the input rows. It is compared
+    // with the limit for the operator.
+    int64_t topRank = 0;
+
     TopRows(HashStringAllocator* allocator, RowComparator& comparator)
         : rows{{comparator}, StlAllocator<char*>(allocator)} {}
   };
@@ -96,6 +100,14 @@ class TopNRowNumber : public Operator {
 
   // Decodes and potentially loads input if lazy vector.
   void prepareInput(RowVectorPtr& input);
+
+  // Handles input row when the partition has not yet accumulated 'limit' rows.
+  // Returns a pointer to the row to add to the partition accumulator.
+  char* processRowBeforeLimit(vector_size_t index, TopRows& partition);
+
+  // Handles input row when the partition has already accumulated 'limit' rows.
+  // Returns a pointer to the row to add to the partition accumulator.
+  char* processRowBeyondLimit(vector_size_t index, TopRows& partition);
 
   // Adds input row to a partition or discards the row.
   void processInputRow(vector_size_t index, TopRows& partition);
